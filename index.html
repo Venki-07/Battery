@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>RE-VOLT AI | Battery Analyzer</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="logo">
+            <span>⚡</span>
+            RE-VOLT AI
+        </div>
+
+        <div class="nav-text">
+            EV Battery Circularity
+        </div>
+    </header>
+
+
+    <main class="container">
+
+        <!-- HERO -->
+        <section class="hero">
+
+            <div>
+                <p class="tag">AI-POWERED BATTERY CIRCULARITY</p>
+
+                <h1>
+                    Give Used Batteries<br>
+                    a <span>Second Life.</span>
+                </h1>
+
+                <p class="description">
+                    Analyze the condition of a used lithium-ion battery
+                    and identify whether it can be reused, repurposed,
+                    or sent for recycling.
+                </p>
+            </div>
+
+            <div class="battery-icon">
+                🔋
+            </div>
+
+        </section>
+
+
+        <!-- INPUT SECTION -->
+        <section class="card">
+
+            <div class="section-heading">
+                <div>
+                    <h2>Battery Assessment</h2>
+                    <p>Enter the battery information manually.</p>
+                </div>
+
+                <span class="step">STEP 01</span>
+            </div>
+
+
+            <form id="batteryForm">
+
+                <div class="input-grid">
+
+                    <!-- Voltage -->
+                    <div class="input-group">
+
+                        <label for="voltage">
+                            Battery Voltage
+                            <span>V</span>
+                        </label>
+
+                        <input
+                            type="number"
+                            id="voltage"
+                            step="0.01"
+                            min="0"
+                            placeholder="Example: 3.82"
+                            required
+                        >
+
+                        <small>
+                            Measured cell/module voltage
+                        </small>
+
+                    </div>
+
+
+                    <!-- Temperature -->
+                    <div class="input-group">
+
+                        <label for="temperature">
+                            Temperature
+                            <span>°C</span>
+                        </label>
+
+                        <input
+                            type="number"
+                            id="temperature"
+                            step="0.1"
+                            placeholder="Example: 31"
+                            required
+                        >
+
+                        <small>
+                            Battery operating temperature
+                        </small>
+
+                    </div>
+
+
+                    <!-- Rated Capacity -->
+                    <div class="input-group">
+
+                        <label for="ratedCapacity">
+                            Rated Capacity
+                            <span>Ah</span>
+                        </label>
+
+                        <input
+                            type="number"
+                            id="ratedCapacity"
+                            step="0.01"
+                            min="0.01"
+                            placeholder="Example: 4.0"
+                            required
+                        >
+
+                        <small>
+                            Manufacturer's original capacity
+                        </small>
+
+                    </div>
+
+
+                    <!-- Measured Capacity -->
+                    <div class="input-group">
+
+                        <label for="measuredCapacity">
+                            Measured Capacity
+                            <span>Ah</span>
+                        </label>
+
+                        <input
+                            type="number"
+                            id="measuredCapacity"
+                            step="0.01"
+                            min="0"
+                            placeholder="Example: 3.4"
+                            required
+                        >
+
+                        <small>
+                            Capacity measured during testing
+                        </small>
+
+                    </div>
+
+
+                    <!-- Cycle Count -->
+                    <div class="input-group">
+
+                        <label for="cycles">
+                            Cycle Count
+                            <span>cycles</span>
+                        </label>
+
+                        <input
+                            type="number"
+                            id="cycles"
+                            min="0"
+                            placeholder="Example: 650"
+                            required
+                        >
+
+                        <small>
+                            Approximate completed charge cycles
+                        </small>
+
+                    </div>
+
+
+                    <!-- Resistance -->
+                    <div class="input-group">
+
+                        <label for="resistance">
+                            Internal Resistance
+                            <span>mΩ</span>
+                        </label>
+
+                        <input
+                            type="number"
+                            id="resistance"
+                            step="0.1"
+                            min="0"
+                            placeholder="Example: 42"
+                            required
+                        >
+
+                        <small>
+                            Measured internal resistance
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-actions">
+
+                    <button
+                        type="button"
+                        id="demoBtn"
+                        class="secondary-btn"
+                    >
+                        Load Demo Data
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="analyze-btn"
+                    >
+                        Analyze Battery →
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <!-- RESULT SECTION -->
+        <section
+            id="resultSection"
+            class="result-section hidden"
+        >
+
+            <div class="result-header">
+
+                <div>
+                    <p class="tag">ANALYSIS COMPLETE</p>
+
+                    <h2>Battery Assessment Result</h2>
+                </div>
+
+                <div id="conditionBadge" class="condition-badge">
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="result-grid">
+
+                <!-- SOH -->
+                <div class="result-card soh-card">
+
+                    <p>Estimated SOH</p>
+
+                    <div class="soh-value">
+                        <span id="sohValue">0</span>%
+                    </div>
+
+                    <div class="progress">
+                        <div id="sohProgress"></div>
+                    </div>
+
+                    <small>
+                        State of Health
+                    </small>
+
+                </div>
+
+
+                <!-- Measurements -->
+                <div class="result-card">
+
+                    <p>Battery Summary</p>
+
+                    <div class="summary">
+
+                        <div>
+                            <span>Voltage</span>
+                            <strong id="resultVoltage">-</strong>
+                        </div>
+
+                        <div>
+                            <span>Temperature</span>
+                            <strong id="resultTemperature">-</strong>
+                        </div>
+
+                        <div>
+                            <span>Capacity</span>
+                            <strong id="resultCapacity">-</strong>
+                        </div>
+
+                        <div>
+                            <span>Cycles</span>
+                            <strong id="resultCycles">-</strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Recommendation -->
+            <div class="recommendation">
+
+                <div class="recommendation-icon">
+                    🔋
+                </div>
+
+                <div>
+
+                    <p class="recommendation-label">
+                        RECOMMENDED ACTION
+                    </p>
+
+                    <h3 id="recommendationTitle">
+                        -
+                    </h3>
+
+                    <p id="recommendationText">
+                        -
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Applications -->
+            <div
+                id="applicationsSection"
+                class="applications"
+            >
+
+                <h3>
+                    Suggested Second-Life Applications
+                </h3>
+
+                <div id="applicationList" class="application-list">
+                </div>
+
+            </div>
+
+
+            <!-- Safety -->
+            <div
+                id="warningBox"
+                class="warning hidden"
+            >
+
+                ⚠️
+
+                <div>
+                    <strong>Safety Alert</strong>
+
+                    <p id="warningText">
+                    </p>
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="resetBtn"
+                class="reset-btn"
+            >
+                ← Analyze Another Battery
+            </button>
+
+        </section>
+
+
+        <!-- EXPLANATION -->
+        <section class="how-section">
+
+            <p class="tag">HOW IT WORKS</p>
+
+            <h2>
+                From Used Battery to Second Life
+            </h2>
+
+            <div class="flow">
+
+                <div>
+                    <span>01</span>
+                    <h3>Input</h3>
+                    <p>
+                        Enter measured battery parameters.
+                    </p>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div>
+                    <span>02</span>
+                    <h3>Analyze</h3>
+                    <p>
+                        Evaluate capacity, temperature,
+                        cycles and resistance.
+                    </p>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div>
+                    <span>03</span>
+                    <h3>Decision</h3>
+                    <p>
+                        Determine the appropriate
+                        battery pathway.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer>
+
+        <p>
+            RE-VOLT AI · EV Battery Circularity Prototype
+        </p>
+
+        <p>
+            Prototype assessment — not a certified battery safety diagnostic.
+        </p>
+
+    </footer>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>
