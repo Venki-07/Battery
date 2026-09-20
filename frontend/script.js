@@ -1,117 +1,118 @@
-const form = document.getElementById("batteryForm");
+// ============================================================
+// RE-VOLT AI - FRONTEND JAVASCRIPT
+// ============================================================
 
-const resultSection = document.getElementById("resultSection");
+
+// ============================================================
+// API URL
+// ============================================================
+
+const API_URL = "https://battery-i3ax.onrender.com";
+
+
+// ============================================================
+// GET HTML ELEMENTS
+// ============================================================
 
 const demoBtn = document.getElementById("demoBtn");
-
+const analyzeBtn = document.getElementById("analyzeBtn");
 const resetBtn = document.getElementById("resetBtn");
 
+const voltageInput = document.getElementById("voltage");
+const temperatureInput = document.getElementById("temperature");
+const ratedCapacityInput = document.getElementById("ratedCapacity");
+const measuredCapacityInput = document.getElementById("measuredCapacity");
+const cyclesInput = document.getElementById("cycles");
+const resistanceInput = document.getElementById("resistance");
+
 const sohValue = document.getElementById("sohValue");
-
-const sohProgress = document.getElementById("sohProgress");
-
-const conditionBadge =
-    document.getElementById("conditionBadge");
-
-const recommendationTitle =
-    document.getElementById("recommendationTitle");
+const conditionBadge = document.getElementById("conditionBadge");
 
 const recommendationText =
     document.getElementById("recommendationText");
 
-const applicationList =
-    document.getElementById("applicationList");
+const applicationsList =
+    document.getElementById("applicationsList");
 
 const warningBox =
     document.getElementById("warningBox");
 
 const warningText =
     document.getElementById("warningText");
-const API_URL = "https://battery-i3ax.onrender.com";
 
-/* --------------------------------
-   DEMO DATA
--------------------------------- */
+
+// ============================================================
+// DEMO DATA
+// ============================================================
 
 demoBtn.addEventListener("click", function () {
 
-    document.getElementById("voltage").value = "3.82";
+    voltageInput.value = "3.82";
 
-    document.getElementById("temperature").value = "31";
+    temperatureInput.value = "31";
 
-    document.getElementById("ratedCapacity").value = "4.0";
+    ratedCapacityInput.value = "4.0";
 
-    document.getElementById("measuredCapacity").value = "3.4";
+    measuredCapacityInput.value = "3.4";
 
-    document.getElementById("cycles").value = "650";
+    cyclesInput.value = "650";
 
-    document.getElementById("resistance").value = "42";
+    resistanceInput.value = "42";
 
 });
 
 
-/* --------------------------------
-   BATTERY ANALYSIS
--------------------------------- */
+// ============================================================
+// ANALYZE BATTERY
+// ============================================================
 
-form.addEventListener("submit", function (event) {
+analyzeBtn.addEventListener("click", async function () {
 
-    event.preventDefault();
-
-
-    /* GET INPUT VALUES */
+    // --------------------------------------------------------
+    // Read values from HTML
+    // --------------------------------------------------------
 
     const voltage =
-        Number(document.getElementById("voltage").value);
+        parseFloat(voltageInput.value);
 
     const temperature =
-        Number(document.getElementById("temperature").value);
+        parseFloat(temperatureInput.value);
 
     const ratedCapacity =
-        Number(document.getElementById("ratedCapacity").value);
+        parseFloat(ratedCapacityInput.value);
 
     const measuredCapacity =
-        Number(document.getElementById("measuredCapacity").value);
+        parseFloat(measuredCapacityInput.value);
 
     const cycles =
-        Number(document.getElementById("cycles").value);
+        parseFloat(cyclesInput.value);
 
     const resistance =
-        Number(document.getElementById("resistance").value);
+        parseFloat(resistanceInput.value);
 
 
-    /* VALIDATION */
+    // --------------------------------------------------------
+    // Validate input
+    // --------------------------------------------------------
 
     if (
-        !Number.isFinite(voltage) ||
-        !Number.isFinite(temperature) ||
-        !Number.isFinite(ratedCapacity) ||
-        !Number.isFinite(measuredCapacity) ||
-        !Number.isFinite(cycles) ||
-        !Number.isFinite(resistance)
+        isNaN(voltage) ||
+        isNaN(temperature) ||
+        isNaN(ratedCapacity) ||
+        isNaN(measuredCapacity) ||
+        isNaN(cycles) ||
+        isNaN(resistance)
     ) {
 
-        alert("Please enter valid values.");
+        alert("Please enter all battery values.");
 
         return;
     }
 
 
-    if (ratedCapacity <= 0) {
-
-        alert("Rated capacity must be greater than zero.");
-
-        return;
-    }
-
-
-    if (measuredCapacity < 0) {
-
-        alert("Measured capacity cannot be negative.");
-
-        return;
-    }
-
+    // --------------------------------------------------------
+    // Check capacity
+    // --------------------------------------------------------
 
     if (measuredCapacity > ratedCapacity) {
 
@@ -123,358 +124,196 @@ form.addEventListener("submit", function (event) {
     }
 
 
-    /* --------------------------------
-       CAPACITY SOH
-    -------------------------------- */
+    // --------------------------------------------------------
+    // Show loading state
+    // --------------------------------------------------------
 
-    let capacitySOH =
-        (measuredCapacity / ratedCapacity) * 100;
+    analyzeBtn.disabled = true;
 
+    analyzeBtn.textContent = "Analyzing...";
 
-    capacitySOH =
-        Math.min(100, Math.max(0, capacitySOH));
+    sohValue.textContent = "--";
 
-
-    /* --------------------------------
-       CYCLE SCORE
-    -------------------------------- */
-
-    let cycleScore;
-
-    if (cycles <= 300) {
-
-        cycleScore = 100;
-
-    } else if (cycles <= 600) {
-
-        cycleScore = 90;
-
-    } else if (cycles <= 1000) {
-
-        cycleScore = 75;
-
-    } else if (cycles <= 1500) {
-
-        cycleScore = 60;
-
-    } else {
-
-        cycleScore = 40;
-
-    }
+    conditionBadge.textContent = "ANALYZING";
 
 
-    /* --------------------------------
-       RESISTANCE SCORE
-    -------------------------------- */
+    // Hide previous warning
 
-    let resistanceScore;
-
-    if (resistance <= 30) {
-
-        resistanceScore = 100;
-
-    } else if (resistance <= 50) {
-
-        resistanceScore = 90;
-
-    } else if (resistance <= 80) {
-
-        resistanceScore = 70;
-
-    } else if (resistance <= 120) {
-
-        resistanceScore = 50;
-
-    } else {
-
-        resistanceScore = 30;
-
-    }
+    warningBox.style.display = "none";
 
 
-    /* --------------------------------
-       TEMPERATURE SCORE
-    -------------------------------- */
+    try {
 
-    let temperatureScore;
+        // ====================================================
+        // SEND DATA TO FLASK API
+        // ====================================================
 
-    if (temperature >= 15 && temperature <= 35) {
+        const response = await fetch(
+            `${API_URL}/predict`,
+            {
 
-        temperatureScore = 100;
+                method: "POST",
 
-    } else if (
-        temperature > 35 &&
-        temperature <= 45
-    ) {
+                headers: {
+                    "Content-Type": "application/json"
+                },
 
-        temperatureScore = 75;
+                body: JSON.stringify({
 
-    } else if (
-        temperature > 45 &&
-        temperature <= 55
-    ) {
+                    voltage: voltage,
 
-        temperatureScore = 50;
+                    temperature: temperature,
 
-    } else {
+                    // Flask expects "capacity"
+                    capacity: measuredCapacity,
 
-        temperatureScore = 20;
+                    cycles: cycles,
 
-    }
+                    resistance: resistance
 
+                })
 
-    /* --------------------------------
-       FINAL SOH
-    -------------------------------- */
-
-    let soh =
-        capacitySOH * 0.55 +
-        cycleScore * 0.15 +
-        resistanceScore * 0.20 +
-        temperatureScore * 0.10;
-
-
-    soh =
-        Math.round(
-            Math.min(100, Math.max(0, soh))
+            }
         );
 
 
-    /* --------------------------------
-       CONDITION
-    -------------------------------- */
+        // ====================================================
+        // CHECK API RESPONSE
+        // ====================================================
 
-    let condition;
-
-    if (
-        soh >= 80 &&
-        temperature <= 45 &&
-        resistance <= 80
-    ) {
-
-        condition = "REUSE";
-
-    } else if (
-        soh >= 60 &&
-        temperature <= 50 &&
-        resistance <= 120
-    ) {
-
-        condition = "SECOND LIFE";
-
-    } else if (
-        soh >= 40
-    ) {
-
-        condition = "FURTHER TESTING";
-
-    } else {
-
-        condition = "RECYCLE";
-
-    }
+        const result = await response.json();
 
 
-    /* --------------------------------
-       UPDATE SOH
-    -------------------------------- */
+        if (!response.ok) {
 
-    sohValue.textContent = soh;
+            throw new Error(
+                result.error ||
+                "Prediction failed."
+            );
 
-    setTimeout(function () {
-
-        sohProgress.style.width = soh + "%";
-
-    }, 100);
+        }
 
 
-    /* --------------------------------
-       CONDITION BADGE
-    -------------------------------- */
+        // ====================================================
+        // DISPLAY SOH
+        // ====================================================
 
-    conditionBadge.textContent = condition;
+        sohValue.textContent =
+            `${result.soh}%`;
 
 
-    /* --------------------------------
-       RECOMMENDATION
-    -------------------------------- */
+        // ====================================================
+        // DISPLAY CONDITION
+        // ====================================================
 
-    if (condition === "REUSE") {
+        conditionBadge.textContent =
+            result.condition;
 
-        recommendationTitle.textContent =
-            "Continue Use";
+
+        // ====================================================
+        // DISPLAY RECOMMENDATION
+        // ====================================================
 
         recommendationText.textContent =
-            "The prototype assessment indicates relatively strong battery health. Further professional electrical and safety testing is required before continued deployment.";
-
-        showApplications([
-            "EV / Mobility",
-            "High-demand applications",
-            "Energy storage"
-        ]);
-
-    }
+            result.recommendation;
 
 
-    else if (condition === "SECOND LIFE") {
+        // ====================================================
+        // DISPLAY APPLICATIONS
+        // ====================================================
 
-        recommendationTitle.textContent =
-            "Repurpose for Second Life";
-
-        recommendationText.textContent =
-            "The battery may be suitable for lower-demand applications after proper testing, cell matching, BMS verification and safety assessment.";
-
-        showApplications([
-            "Solar Energy Storage",
-            "Backup Power",
-            "Telecom Backup",
-            "Street Lighting",
-            "Microgrid Storage"
-        ]);
-
-    }
+        applicationsList.innerHTML = "";
 
 
-    else if (condition === "FURTHER TESTING") {
+        result.applications.forEach(function (application) {
 
-        recommendationTitle.textContent =
-            "Additional Testing Required";
+            const li =
+                document.createElement("li");
 
-        recommendationText.textContent =
-            "The current measurements are not sufficient to confidently assign a reuse pathway. Perform additional capacity, resistance, cell-balance and safety testing.";
+            li.textContent =
+                application;
 
-        showApplications([
-            "Diagnostic Testing",
-            "Cell-Level Assessment"
-        ]);
+            applicationsList.appendChild(li);
 
-    }
+        });
 
 
-    else {
+        // ====================================================
+        // DISPLAY WARNING
+        // ====================================================
 
-        recommendationTitle.textContent =
-            "Route Toward Recycling";
+        if (result.warning) {
 
-        recommendationText.textContent =
-            "The prototype assessment indicates poor condition. The battery should undergo professional end-of-life evaluation and appropriate recycling procedures.";
+            warningText.textContent =
+                result.warning;
 
-        showApplications([
-            "Material Recovery",
-            "Battery Recycling"
-        ]);
+            warningBox.style.display = "block";
+
+        } else {
+
+            warningBox.style.display = "none";
+
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Unable to connect to the RE-VOLT AI server.\n\n" +
+            error.message
+        );
+
+        sohValue.textContent = "--";
+
+        conditionBadge.textContent = "ERROR";
 
     }
 
 
-    /* --------------------------------
-       SUMMARY
-    -------------------------------- */
+    // --------------------------------------------------------
+    // Restore button
+    // --------------------------------------------------------
 
-    document.getElementById("resultVoltage")
-        .textContent =
-        voltage.toFixed(2) + " V";
+    analyzeBtn.disabled = false;
 
-    document.getElementById("resultTemperature")
-        .textContent =
-        temperature.toFixed(1) + " °C";
-
-    document.getElementById("resultCapacity")
-        .textContent =
-        measuredCapacity.toFixed(2)
-        + " / "
-        + ratedCapacity.toFixed(2)
-        + " Ah";
-
-    document.getElementById("resultCycles")
-        .textContent =
-        cycles + " cycles";
-
-
-    /* --------------------------------
-       SAFETY WARNING
-    -------------------------------- */
-
-    if (temperature > 45) {
-
-        warningBox.classList.remove("hidden");
-
-        warningText.textContent =
-            "The entered temperature is elevated. Do not use the battery based on this prototype result alone. Professional thermal and electrical safety testing is required.";
-
-    }
-
-    else if (resistance > 120) {
-
-        warningBox.classList.remove("hidden");
-
-        warningText.textContent =
-            "The entered internal resistance is high. Additional diagnostic testing is required before any reuse decision.";
-
-    }
-
-    else {
-
-        warningBox.classList.add("hidden");
-
-    }
-
-
-    /* --------------------------------
-       SHOW RESULTS
-    -------------------------------- */
-
-    resultSection.classList.remove("hidden");
-
-    resultSection.scrollIntoView({
-        behavior: "smooth"
-    });
+    analyzeBtn.textContent = "Analyze Battery";
 
 });
 
 
-/* --------------------------------
-   APPLICATION DISPLAY
--------------------------------- */
-
-function showApplications(applications) {
-
-    applicationList.innerHTML = "";
-
-    applications.forEach(function (application) {
-
-        const item =
-            document.createElement("div");
-
-        item.className =
-            "application-item";
-
-        item.textContent =
-            "✓ " + application;
-
-        applicationList.appendChild(item);
-
-    });
-
-}
-
-
-/* --------------------------------
-   RESET
--------------------------------- */
+// ============================================================
+// RESET
+// ============================================================
 
 resetBtn.addEventListener("click", function () {
 
-    form.reset();
+    voltageInput.value = "";
 
-    resultSection.classList.add("hidden");
+    temperatureInput.value = "";
 
-    sohProgress.style.width = "0%";
+    ratedCapacityInput.value = "";
 
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
+    measuredCapacityInput.value = "";
+
+    cyclesInput.value = "";
+
+    resistanceInput.value = "";
+
+
+    sohValue.textContent = "--";
+
+    conditionBadge.textContent = "--";
+
+
+    recommendationText.textContent =
+        "Enter battery information and analyze the battery.";
+
+
+    applicationsList.innerHTML = "";
+
+
+    warningBox.style.display = "none";
 
 });
