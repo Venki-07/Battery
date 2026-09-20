@@ -27,7 +27,7 @@ const warningBox =
 
 const warningText =
     document.getElementById("warningText");
-
+const API_URL = "https://battery-i3ax.onrender.com/";
 
 /* --------------------------------
    DEMO DATA
