@@ -1,94 +1,146 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-
 import joblib
 import pandas as pd
+from pathlib import Path
 
+
+# ============================================================
+# CREATE FLASK APP
+# ============================================================
 
 app = Flask(__name__)
 
+# Allow requests from your Vercel frontend
 CORS(app)
 
 
-# -----------------------------
+# ============================================================
+# FIND MODEL FILE
+# ============================================================
+
+BASE_DIR = Path(__file__).resolve().parent
+
+MODEL_PATH = BASE_DIR / "battery_soh_model.pkl"
+
+
+# ============================================================
 # LOAD ML MODEL
-# -----------------------------
+# ============================================================
 
-model = joblib.load(
-    "battery_soh_model.pkl"
-)
+try:
+
+    model = joblib.load(MODEL_PATH)
+
+    print("ML model loaded successfully.")
+
+except Exception as error:
+
+    print("ERROR: Could not load ML model.")
+    print(error)
+
+    model = None
 
 
-# -----------------------------
-# HOME
-# -----------------------------
+# ============================================================
+# HOME ROUTE
+# ============================================================
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
 
     return jsonify({
-        "message": "RE-VOLT AI Battery API is running"
+        "message": "RE-VOLT AI Battery API is running",
+        "model_loaded": model is not None
     })
 
 
-# -----------------------------
-# BATTERY PREDICTION
-# -----------------------------
+# ============================================================
+# PREDICTION ROUTE
+# ============================================================
 
 @app.route("/predict", methods=["POST"])
 def predict():
 
+    # Check model
+    if model is None:
+
+        return jsonify({
+            "error": "ML model could not be loaded."
+        }), 500
+
+
+    # Get JSON data
     data = request.get_json()
 
 
-    # -------------------------
-    # GET INPUTS
-    # -------------------------
+    try:
 
-    voltage = float(data["voltage"])
+        voltage = float(data["voltage"])
 
-    temperature = float(data["temperature"])
+        temperature = float(
+            data["temperature"]
+        )
 
-    capacity = float(data["capacity"])
+        capacity = float(
+            data["capacity"]
+        )
 
-    cycles = float(data["cycles"])
+        cycles = float(
+            data["cycles"]
+        )
 
-    resistance = float(data["resistance"])
+        resistance = float(
+            data["resistance"]
+        )
 
 
-    # -------------------------
+    except Exception:
+
+        return jsonify({
+            "error": "Invalid battery input."
+        }), 400
+
+
+    # ========================================================
     # CREATE DATAFRAME
-    # -------------------------
+    # ========================================================
 
-    input_data = pd.DataFrame([{
-
-        "voltage": voltage,
-
-        "temperature": temperature,
-
-        "capacity": capacity,
-
-        "cycles": cycles,
-
-        "resistance": resistance
-
-    }])
+    input_data = pd.DataFrame([
+        {
+            "voltage": voltage,
+            "temperature": temperature,
+            "capacity": capacity,
+            "cycles": cycles,
+            "resistance": resistance
+        }
+    ])
 
 
-    # -------------------------
+    # ========================================================
     # ML PREDICTION
-    # -------------------------
+    # ========================================================
 
-    predicted_soh = model.predict(
-        input_data
-    )[0]
+    try:
 
+        predicted_soh = model.predict(
+            input_data
+        )[0]
+
+    except Exception as error:
+
+        return jsonify({
+            "error": "Prediction failed.",
+            "details": str(error)
+        }), 500
+
+
+    # Keep SOH between 0 and 100
 
     predicted_soh = max(
         0,
         min(100, predicted_soh)
     )
-
 
     predicted_soh = round(
         predicted_soh,
@@ -96,9 +148,9 @@ def predict():
     )
 
 
-    # -------------------------
-    # CONDITION
-    # -------------------------
+    # ========================================================
+    # BATTERY DECISION
+    # ========================================================
 
     if (
         predicted_soh >= 80
@@ -109,9 +161,9 @@ def predict():
         condition = "REUSE"
 
         recommendation = (
-            "The battery shows relatively strong "
-            "health in this prototype assessment. "
-            "Professional safety testing is required "
+            "The battery shows relatively strong health "
+            "in this prototype assessment. Professional "
+            "electrical and safety testing is required "
             "before continued use."
         )
 
@@ -131,9 +183,9 @@ def predict():
         condition = "SECOND LIFE"
 
         recommendation = (
-            "The battery may be suitable for "
-            "lower-demand second-life applications "
-            "after proper electrical and safety testing."
+            "The battery may be suitable for lower-demand "
+            "second-life applications after proper electrical "
+            "and safety testing."
         )
 
         applications = [
@@ -150,8 +202,8 @@ def predict():
         condition = "FURTHER TESTING"
 
         recommendation = (
-            "Additional battery diagnostics are "
-            "recommended before deciding on reuse."
+            "Additional battery diagnostics are recommended "
+            "before deciding on reuse or second-life deployment."
         )
 
         applications = [
@@ -165,9 +217,9 @@ def predict():
         condition = "RECYCLE"
 
         recommendation = (
-            "The prototype assessment indicates "
-            "poor condition. Professional end-of-life "
-            "evaluation and recycling should be considered."
+            "The prototype assessment indicates poor condition. "
+            "Professional end-of-life evaluation and appropriate "
+            "battery recycling should be considered."
         )
 
         applications = [
@@ -176,9 +228,9 @@ def predict():
         ]
 
 
-    # -------------------------
+    # ========================================================
     # SAFETY WARNING
-    # -------------------------
+    # ========================================================
 
     warning = None
 
@@ -200,9 +252,9 @@ def predict():
         )
 
 
-    # -------------------------
+    # ========================================================
     # RETURN RESULT
-    # -------------------------
+    # ========================================================
 
     return jsonify({
 
@@ -219,14 +271,13 @@ def predict():
     })
 
 
-# -----------------------------
-# RUN SERVER
-# -----------------------------
+# ============================================================
+# RUN APP
+# ============================================================
 
 if __name__ == "__main__":
 
     app.run(
-        host="127.0.0.1",
-        port=5000,
-        debug=True
+        host="0.0.0.0",
+        port=5000
     )
